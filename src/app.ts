@@ -1,4 +1,5 @@
 // src/app.ts
+// @ts-nocheck
 
 import ConnectSessionKnex from 'connect-session-knex';
 import cookieParser from 'cookie-parser';
@@ -10,16 +11,29 @@ import passport from 'passport';
 import knex from './database/db';
 import indexRoutes from './routes/index';
 import userRoutes from './routes/users';
-import authRoutes from './routes/auth';
+// import authRoutes from './routes/auth';
+import auth0Routes from './routes/auth0';
 import {
   generalErrorHandler,
   notFoundHandler,
 } from './middleware/errorMiddleware';
 import flash from 'express-flash';
+const cors = require('cors');
+require('dotenv').config();
 
 const KnexSessionStore = ConnectSessionKnex(session);
 
 const app = express();
+
+const corsOptions = {
+  origin: 'http://localhost:3000',
+};
+
+app.use(cors(corsOptions));
+
+// enforce on all endpoints
+// app.use(jwtCheck);
+// app.use(checkJwt);
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -41,44 +55,24 @@ app.use(
 );
 
 // app.use(passport.authenticate('session'));
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
+
+// app.get('/authorized', function (req, res) {
+//   res.send('Secured Resource');
+// });
 
 app.use('/api', indexRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/auth', authRoutes);
+// app.use('/api/auth', authRoutes);
+app.use('/', auth0Routes);
 
-// app.use('/api/products', requiresAuth, productRoutes);
+// app.use(notFoundHandler);
+// app.use(generalErrorHandler);
 
-app.get('/api/routes', (req, res) => {
-  res.status(200).send(listEndpoints(app));
+app.use(function (err, req, res, next) {
+  console.error(err.stack);
+  return res.set(err.headers).status(err.status).json({ message: err.message });
 });
-
-// /**
-//  * @description:    Log out the current user
-//  * @route:          GET /api/users/login/google
-//  * @access:         Public
-//  */
-// app.get('/login/google', passport.authenticate('google'));
-
-// /**
-//  * @description:    Log out the current user
-//  * @route:          POST /api/users/oauth2/redirect/google
-//  * @access:         Public
-//  */
-// app.get(
-//   '/auth/google/callback',
-//   // '/oauth2/redirect/google',
-//   passport.authenticate('google', {
-//     failureRedirect: '/login',
-//     failureMessage: true,
-//   }),
-//   function (req, res) {
-//     res.redirect('/');
-//   }
-// );
-
-app.use(notFoundHandler);
-app.use(generalErrorHandler);
 
 export default app;
